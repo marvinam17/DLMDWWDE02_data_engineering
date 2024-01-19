@@ -30,6 +30,37 @@ spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 ./test.
 
 
 
+
+
+
+
+from pyspark.sql import SparkSession
+
+spark=SparkSession.builder.appName('my_app')\
+    .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0')\
+    .getOrCreate()
+
+df = spark.readStream \
+    .format("kafka") \
+    .option("kafka.bootstrap.servers", "kafka:9092") \
+    .option("subscribe", "dwd-topic") \
+    .option("startingOffsets", "earliest") \
+    .load()
+
+base_df = df.selectExpr("CAST(value as STRING)", "timestamp")
+base_df.printSchema()
+
+
+query=df.writeStream.format(
+        "console").options(numRows=3, truncate=False).start()
+
+
+
+
+
+
+
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 from pyspark.sql.types import StructType, StructField, StringType

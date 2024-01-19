@@ -3,6 +3,7 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper
+    container_name: zookeeper
     ports:
       - "2181:2181"
     environment:
@@ -17,15 +18,14 @@ services:
       - zookeeper
     ports:
       - '9092:9092'
-    expose:
-      - '29092'
     environment:
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
-      KAFKA_MIN_INSYNC_REPLICAS: '1'
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: LISTENER_BOB://kafka:29092,LISTENER_FRED://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_BOB://kafka:29092,LISTENER_FRED://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_BOB:PLAINTEXT,LISTENER_FRED:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_BOB
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
 
   init-kafka:
     image: confluentinc/cp-kafka
@@ -43,13 +43,31 @@ services:
       echo -e 'Successfully created the following topics:'
       kafka-topics --bootstrap-server kafka:29092 --list
       "
-  
+  # ----------------- #
+  # Apache Spark      #
+  # ----------------- #
   spark:
-    image: jupyter/pyspark-notebook
+    image: docker.io/bitnami/spark:3.3
     container_name: spark
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - '8080:8080'
+      - '4040:4040'
+      - '7077:7077'
     volumes:
       - ./data:/data
-      - ./notebooks:/notebooks
-    ports:
-      - '8888:8888'
-      - '4040:4040'
+      - ./src:/src
+  spark-worker:
+    image: docker.io/bitnami/spark:3.3
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_EXECUTOR_MEMORY=4G
+      - SPARK_WORKER_CORES=4
+
+    volumes:
+      - ./data:/data
+      - ./src:/src 
