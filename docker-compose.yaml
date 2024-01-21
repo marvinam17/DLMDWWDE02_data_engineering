@@ -18,17 +18,23 @@ services:
       - zookeeper
     ports:
       - '9092:9092'
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:29092 ", "--list"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: LISTENER_BOB://kafka:29092,LISTENER_FRED://kafka:9092
-      KAFKA_ADVERTISED_LISTENERS: LISTENER_BOB://kafka:29092,LISTENER_FRED://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_BOB:PLAINTEXT,LISTENER_FRED:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_BOB
+      KAFKA_LISTENERS: LISTENER_INTERNAL://kafka:29092,LISTENER_EXTERNAL://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_INTERNAL://kafka:29092,LISTENER_EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_INTERNAL:PLAINTEXT,LISTENER_EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
 
   init-kafka:
     image: confluentinc/cp-kafka
+    container_name: init-kafka
     depends_on:
       - kafka
     entrypoint: [ '/bin/sh', '-c' ]
@@ -71,3 +77,24 @@ services:
     volumes:
       - ./data:/data
       - ./src:/src 
+  # ----------------- #
+  # Producer          #
+  # ----------------- #
+  producer:
+    build: ./data_production
+    container_name: producer
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      - KAFKA_LISTENER=kafka:29092
+      - STREAMING_SPEED=0.001
+      - STATION_ID=00399
+  cassandra:
+    image: cassandra:4
+    container_name: cassandra
+    host_name: cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - /var/lib/cassandra
