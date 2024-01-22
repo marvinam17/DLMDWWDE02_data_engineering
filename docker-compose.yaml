@@ -63,7 +63,7 @@ services:
       - '7077:7077'
     volumes:
       - ./data:/data
-      - ./src:/src
+      - ./data_aggregation:/src
   spark-worker:
     image: docker.io/bitnami/spark:3.3
     container_name: spark-worker
@@ -73,10 +73,11 @@ services:
       - SPARK_WORKER_MEMORY=4G
       - SPARK_EXECUTOR_MEMORY=4G
       - SPARK_WORKER_CORES=4
-
+    #command: bash -c "spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,com.datastax.spark:spark-cassandra-connector_2.12:3.3.0 /src/read.py"
     volumes:
       - ./data:/data
-      - ./src:/src 
+      - ./data_aggregation:/src 
+    
   # ----------------- #
   # Producer          #
   # ----------------- #
@@ -88,12 +89,11 @@ services:
         condition: service_healthy
     environment:
       - KAFKA_LISTENER=kafka:29092
-      - STREAMING_SPEED=0.001
+      - STREAMING_SPEED=0.1
       - STATION_ID=00399
   cassandra:
-    image: cassandra:4
+    build: ./data_storage
     container_name: cassandra
-    host_name: cassandra
     ports:
       - "9042:9042"
     volumes:
