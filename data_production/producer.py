@@ -29,6 +29,7 @@ producer = KafkaProducer(
 
 def push_records(data):
     for payload in data.to_dict(orient='records'):
+        print(payload)
         producer.send("dwd-topic", value=payload)
         sleep(calc_speed_factor(streamspeed))
     return
@@ -37,4 +38,5 @@ if __name__ == "__main__":
     url = "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/10_minutes/air_temperature/historical/"
     station_names = get_station_dwd_file_storage(url, station_id)
     data = get_and_unzip_files(url, station_names)
+    print("data_crawled")
     push_records(data)

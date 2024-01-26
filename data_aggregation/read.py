@@ -1,6 +1,9 @@
+import os
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
 
+CASSANDRA_USER = "cassandra"
+CASSANDRA_PW = os.getenv("CASSANDRA_PASSWORD")
 KAFKA_BOOTSTRAP_SERVERS = "kafka:29092"
 KAFKA_TOPIC = "dwd-topic"
 
@@ -20,6 +23,8 @@ SCHEMA = StructType([
 spark = SparkSession.builder.appName("weather_stream")\
     .config("spark.jars.packages","org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,com.datastax.spark:spark-cassandra-connector_2.12:3.3.0") \
     .config('spark.cassandra.connection.host', 'cassandra')\
+    .config("spark.cassandra.auth.username", CASSANDRA_USER)\
+    .config("spark.cassandra.auth.password", CASSANDRA_PW)\
     .getOrCreate()
 
 # Reduce logging
@@ -40,7 +45,8 @@ kafka_data_df = json_data.select("data.*")
 kafka_data_df = kafka_data_df.withColumn("MEASUREMENT_DATE",F.to_timestamp("MEASUREMENT_DATE","yyyyMMddHHmm").cast("timestamp"))\
     .withColumn("date",F.to_date("MEASUREMENT_DATE"))\
     .where(F.col("AIR_TEMPERATURE_200CM") != "-999.0")\
-    .groupby("date").agg(F.mean("AIR_TEMPERATURE_200CM").alias("mean_day_temp"))
+    .withColumnRenamed("STATION_ID","station_id")\
+    .groupby("date", "station_id").agg(F.mean("AIR_TEMPERATURE_200CM").alias("mean_day_temp"))
 
 #DataFrame anzeigen (kann auch in eine andere Datenquelle geschrieben werden)
 # query = kafka_data_df \
@@ -62,8 +68,6 @@ keyspace = "dwd_weather"
 
 
 def save_to_cassandra(writeDF, epoch_id):
-    print("Printing epoch_id: ")
-    print(epoch_id)
   
     writeDF.write \
         .format("org.apache.spark.sql.cassandra")\

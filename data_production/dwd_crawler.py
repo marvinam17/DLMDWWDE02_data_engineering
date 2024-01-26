@@ -40,7 +40,7 @@ def get_and_unzip_files(url, list_of_filenames):
             df = pd.read_csv(z.open(file),sep=';')
             df.columns = [s.strip() for s in df.columns]
             dfs.append(rename_dataframe_columns(df))
-    return pd.concat(dfs)#.sort_values("MEASUREMENT_DATE")
+    return pd.concat(dfs).sort_values("MEASUREMENT_DATE")
 
 def get_station_dwd_file_storage(url, station_id):
     """
