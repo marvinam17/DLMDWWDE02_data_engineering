@@ -1,4 +1,4 @@
-FROM docker.io/bitnami/cassandra:latest
+FROM docker.io/bitnami/cassandra:3.11
 
 ENV LANG C.UTF-8
 

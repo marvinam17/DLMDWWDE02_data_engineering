@@ -34,7 +34,7 @@ spark.sparkContext.setLogLevel("WARN")
 df = spark.readStream.format("kafka") \
     .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
     .option("subscribe", KAFKA_TOPIC) \
-    .option("startingOffsets", "latest") \
+    .option("startingOffsets", "earliest") \
     .load()
 # set earliest here!!!!!!!!!!
 
@@ -42,11 +42,11 @@ df = spark.readStream.format("kafka") \
 # JSON-Daten aus dem Kafka-Stream extrahieren und das Schema anwenden
 json_data = df.selectExpr("CAST(value AS STRING)").select(F.from_json("value", SCHEMA).alias("data"))
 kafka_data_df = json_data.select("data.*")
-kafka_data_df = kafka_data_df.withColumn("MEASUREMENT_DATE",F.to_timestamp("MEASUREMENT_DATE","yyyyMMddHHmm").cast("timestamp"))\
-    .withColumn("date",F.to_date("MEASUREMENT_DATE"))\
+kafka_data_df_agg = kafka_data_df.withColumn("MEASUREMENT_DATE",F.to_timestamp("MEASUREMENT_DATE","yyyyMMddHHmm").cast("timestamp"))\
+    .withColumn("measurement_date",F.to_date("MEASUREMENT_DATE"))\
     .where(F.col("AIR_TEMPERATURE_200CM") != "-999.0")\
     .withColumnRenamed("STATION_ID","station_id")\
-    .groupby("date", "station_id").agg(F.mean("AIR_TEMPERATURE_200CM").alias("mean_day_temp"))
+    .groupby("measurement_date", "station_id").agg(F.mean("AIR_TEMPERATURE_200CM").alias("mean_day_temp"))
 
 #DataFrame anzeigen (kann auch in eine andere Datenquelle geschrieben werden)
 # query = kafka_data_df \
@@ -74,17 +74,36 @@ def save_to_cassandra(writeDF, epoch_id):
         .mode('append')\
         .options(table=table_name, keyspace=keyspace)\
         .save()
+    
+def save_to_cassandra_2(writeDF, epoch_id):
+  
+    writeDF.write \
+        .format("org.apache.spark.sql.cassandra")\
+        .mode('append')\
+        .options(table="all_data", keyspace=keyspace)\
+        .save()
 
-query1 = kafka_data_df.writeStream \
-    .trigger(processingTime="15 seconds") \
+query1 = kafka_data_df_agg.writeStream \
+    .trigger(processingTime="5 seconds") \
     .foreachBatch(save_to_cassandra) \
     .outputMode("update") \
-    .start()\
-    .awaitTermination()
+    .start()
 
-# df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)") \
-#     .writeStream \
-#     .format("console") \
-#     .outputMode("append") \
-#     .start() \
-#     .awaitTermination() 
+query2 = kafka_data_df.withColumn("measurement_date",F.to_timestamp("MEASUREMENT_DATE","yyyyMMddHHmm").cast("timestamp")) \
+    .select([F.col(x).alias(x.lower()) for x in kafka_data_df.columns]) \
+    .writeStream \
+    .trigger(processingTime="5 seconds") \
+    .foreachBatch(save_to_cassandra_2) \
+    .outputMode("update") \
+    .start()
+
+# orders_agg_write_stream = kafka_data_df \
+#         .writeStream \
+#         .trigger(processingTime='5 seconds') \
+#         .outputMode("update") \
+#         .option("truncate", "false")\
+#         .option("checkpointLocation", "temp/spark-checkpoint") \
+#         .format("console") \
+#         .start()
+
+spark.streams.awaitAnyTermination()
