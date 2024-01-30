@@ -41,12 +41,19 @@ services:
     command: |
       "
       # For DEV:
-      kafka-topics --bootstrap-server kafka:29092 --delete --topic dwd-topic
+      kafka-topics --bootstrap-server kafka:29092 --delete --topic temperature
+      kafka-topics --bootstrap-server kafka:29092 --delete --topic pressure
+      kafka-topics --bootstrap-server kafka:29092 --delete --topic humidity
+      kafka-topics --bootstrap-server kafka:29092 --delete --topic dewpoint
+
       # blocks until kafka is reachable
       kafka-topics --bootstrap-server kafka:29092 --list
 
       echo -e 'Creating kafka topics'
-      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic dwd-topic --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic temperature --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic pressure --replication-factor 1 --partitions 1  
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic humidity --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic dewpoint --replication-factor 1 --partitions 1
 
       echo -e 'Successfully created the following topics:'
       kafka-topics --bootstrap-server kafka:29092 --list
@@ -102,7 +109,7 @@ services:
     environment:
       - KAFKA_LISTENER=kafka:29092
       - STREAMING_SPEED=0.0001
-      - STATION_ID=00399
+      - STATION_ID=00433
   cassandra:
     build: ./data_storage
     container_name: cassandra
@@ -131,10 +138,3 @@ services:
       - ADMIN_PASSWORD=admin
     ports:
       - '8088:8088'
-  grafana:
-    image: redash/redash
-    container_name: redash
-    ports:
-      - "5001:5000"
-      - "5678:5678"
-    

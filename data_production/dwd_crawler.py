@@ -40,17 +40,22 @@ def get_and_unzip_files(url, list_of_filenames):
             df = pd.read_csv(z.open(file),sep=';')
             df.columns = [s.strip() for s in df.columns]
             dfs.append(rename_dataframe_columns(df))
-    return pd.concat(dfs).sort_values("MEASUREMENT_DATE")
+    return pd.concat(dfs).sort_values("MEASUREMENT_DATE").drop_duplicates(subset=["MEASUREMENT_DATE"])
 
 def get_station_dwd_file_storage(url, station_id):
     """
     This function crawls historic data from DWD
+    The data is splitted in histroic, recent and now data.
     """
-    r = requests.get(url)
-    soup = BeautifulSoup(r.content,'html.parser') 
-    a_tags_list = []
-    for link in soup.find_all('a'):
-        a_tags_list.append(link.get('href'))
-    regex = re.compile(f'10minutenwerte_TU_{station_id}_*')
-    filtered = [i for i in a_tags_list if regex.match(str(i))]
-    return filtered
+    all_data = []
+    for folder in ["historical/","recent/","now/"]:
+        filtered = []
+        r = requests.get(url+folder)
+        soup = BeautifulSoup(r.content,'html.parser') 
+        a_tags_list = []
+        for link in soup.find_all('a'):
+            a_tags_list.append(link.get('href'))
+        regex = re.compile(f'10minutenwerte_TU_{station_id}_*')
+        filtered = [(folder+i) for i in a_tags_list if regex.match(str(i))]
+        all_data.extend(filtered)
+    return all_data
