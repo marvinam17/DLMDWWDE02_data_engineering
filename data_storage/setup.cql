@@ -3,24 +3,39 @@ CREATE KEYSPACE IF NOT EXISTS dwd_weather
 
 USE dwd_weather;
 
-CREATE TABLE IF NOT EXISTS daily_weather_data(
+CREATE TABLE IF NOT EXISTS daily_temp_data(
     measurement_date timestamp,
     station_id int,
     mean_temp double,
     std_dev_temp double,
-    max_air_pressure double,
-    min_air_pressure double,
-    max_rel_humidity double,
-    min_rel_humidity double,
-    QUALITY_LEVEL int,
+    quality int,
+    icao_code varchar,
+    station_name varchar,
+    station_height int,
     PRIMARY KEY(measurement_date)
 );
 
-CREATE TABLE IF NOT EXISTS yearly_weather_data(
-    measurement_year timestamp,
-    max_air_pressure double,
-    min_air_pressure double,
-    frosty_days int,
-    invalid_temp_values int,
-    PRIMARY KEY(measurement_year)
+CREATE TABLE IF NOT EXISTS daily_pres_data(
+    measurement_date timestamp,
+    station_id int,
+    max_pressure double,
+    min_pressure double,
+    PRIMARY KEY(measurement_date)
 );
+
+CREATE TABLE IF NOT EXISTS daily_humi_data(
+    measurement_date timestamp,
+    station_id int,
+    max_humidity double,
+    min_humidity double,
+    PRIMARY KEY(measurement_date)
+);
+
+CREATE TABLE IF NOT EXISTS daily_dewp_data(
+    measurement_date timestamp,
+    station_id int,
+    max_dewpoint double,
+    min_dewpoint double,
+    PRIMARY KEY(measurement_date)
+);
+
