@@ -6,19 +6,11 @@ SCHEMA_TEMP = StructType([
     StructField("temperature", FloatType()),
     StructField("quality", IntegerType())])
 
-SCHEMA_PRES = StructType([
+SCHEMA_OTHE = StructType([
     StructField("measurement_date", StringType()),
     StructField("station_id", StringType()),
-    StructField("pressure", FloatType())])
-
-SCHEMA_HUMI = StructType([
-    StructField("measurement_date", StringType()),
-    StructField("station_id", StringType()),
-    StructField("humidity", FloatType())])
-
-SCHEMA_DEWP = StructType([
-    StructField("measurement_date", StringType()),
-    StructField("station_id", StringType()),
+    StructField("pressure", FloatType()),
+    StructField("humidity", FloatType()),
     StructField("dewpoint", FloatType())])
 
 SCHEMA_STATIC = StructType([
