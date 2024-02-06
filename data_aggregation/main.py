@@ -8,7 +8,15 @@ from utils import (create_stream,
                    join_static_data)
 from aggregations import (apply_aggs, 
                           daily_aggs_temp,
-                          daily_aggs_othe)
+                          daily_aggs_othe,
+                          yearly_aggs_temp,
+                          aggs_meta_data)
+from save_functions import (save_temp_to_cassandra,
+                            save_othe_to_cassandra,
+                            save_yearly_temp_to_cassandra,
+                            save_meta_data_to_cassandra,
+                            save_to_postgres)
+import pyspark.sql.functions as F
 
 CASSANDRA_USER = os.getenv("CASSANDRA_USER")
 CASSANDRA_PW = os.getenv("CASSANDRA_PASSWORD")
@@ -23,26 +31,10 @@ COL_PRES = "pressure"
 COL_HUMI = "humidity"
 COL_DEWP = "dewpoint"
 
-# Functions for batch writing to CASSANDRA
-def save_temp_to_cassandra(writeDF, epoch_id):
-    writeDF.write \
-    .format("org.apache.spark.sql.cassandra")\
-    .mode('append')\
-    .options(table=CASSANDRA_TEMP, keyspace=CASSANDRA_KEYSPACE)\
-    .save()
-
-def save_othe_to_cassandra(writeDF, epoch_id):
-    writeDF.write \
-    .format("org.apache.spark.sql.cassandra")\
-    .mode('append')\
-    .options(table=CASSANDRA_OTHE, keyspace=CASSANDRA_KEYSPACE)\
-    .save()
 
 if __name__ == '__main__':
 
-    # Build Spark Session
     spark = SparkSession.builder.appName("weather_stream")\
-    .config("spark.jars.packages","org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,com.datastax.spark:spark-cassandra-connector_2.12:3.3.0") \
     .config('spark.cassandra.connection.host', 'cassandra')\
     .config("spark.cassandra.auth.username", CASSANDRA_USER)\
     .config("spark.cassandra.auth.password", CASSANDRA_PW)\
@@ -64,26 +56,47 @@ if __name__ == '__main__':
     # Extract data from json in a dataframe and clean up the timestamp column
     df_temp_schema = apply_schema(df_temp, SCHEMA_TEMP)
     df_othe_schema = apply_schema(df_othe, SCHEMA_OTHE)
+    df_temp_yearly = df_temp_schema.withColumn("year",F.year("measurement_date"))
 
     # Perform Aggregations
-    df_temp_agg = apply_aggs(df_temp_schema, daily_aggs_temp(), [COL_TEMP])
-    df_othe_agg = apply_aggs(df_othe_schema, daily_aggs_othe(), [COL_PRES, COL_HUMI, COL_DEWP])
+    df_temp_agg = apply_aggs(df_temp_schema, daily_aggs_temp(), [COL_TEMP], ["measurement_date","station_id"])
+    df_othe_agg = apply_aggs(df_othe_schema, daily_aggs_othe(), [COL_PRES, COL_HUMI, COL_DEWP],["measurement_date","station_id"])
+    df_temp_yearly_agg = apply_aggs(df_temp_yearly, yearly_aggs_temp(), [COL_TEMP],["year"])
+    df_meta_agg = apply_aggs(df_temp_schema, aggs_meta_data(), [COL_TEMP],["station_id"])
 
     # Join some static data
-    df_temp_joined = join_static_data(df_temp_agg, df_static)
+    df_meta_joined = join_static_data(df_meta_agg, df_static)
 
     # Batch Queries to CASSANDRA
-    query_temp = df_temp_joined.writeStream \
+    query_temp = df_temp_agg.writeStream \
         .trigger(processingTime="15 seconds") \
         .foreachBatch(save_temp_to_cassandra) \
         .outputMode("update") \
         .start()
-
-    query_pres = df_othe_agg.writeStream \
+    
+    query_meta_data = df_meta_joined.writeStream \
         .trigger(processingTime="15 seconds") \
-        .foreachBatch(save_othe_to_cassandra) \
+        .foreachBatch(save_meta_data_to_cassandra) \
         .outputMode("update") \
-        .start()
+        .start()    
+
+    # query_othe = df_othe_agg.writeStream \
+    #     .trigger(processingTime="15 seconds") \
+    #     .foreachBatch(save_othe_to_cassandra) \
+    #     .outputMode("update") \
+    #     .start()
+
+    query_yearly_temp = df_temp_yearly_agg.writeStream \
+        .trigger(processingTime="15 seconds") \
+        .foreachBatch(save_yearly_temp_to_cassandra) \
+        .outputMode("update") \
+        .start()    
+
+    # query2 = df_temp_joined.writeStream \
+    #     .trigger(processingTime="15 seconds") \
+    #     .outputMode("complete") \
+    #     .foreachBatch(save_to_postgres) \
+    #     .start()
 
     # orders_agg_write_stream = df_temp_joined \
     #     .writeStream \

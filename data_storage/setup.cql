@@ -7,11 +7,6 @@ CREATE TABLE IF NOT EXISTS daily_temp_data(
     measurement_date timestamp,
     station_id int,
     mean_temp double,
-    std_dev_temp double,
-    quality int,
-    icao_code varchar,
-    station_name varchar,
-    station_height int,
     PRIMARY KEY(measurement_date)
 );
 
@@ -23,4 +18,25 @@ CREATE TABLE IF NOT EXISTS daily_othe_data(
     mean_humidity double,
     mean_dewpoint double,
     PRIMARY KEY(measurement_date)
+);
+
+CREATE TABLE IF NOT EXISTS yearly_data_temp(
+    year int,
+    mean_temp double,
+    mean_deviation double,
+    quality int,
+    PRIMARY KEY(year)
+);
+
+CREATE TABLE IF NOT EXISTS meta_data(
+    station_id int,
+    max_date timestamp,
+    min_date timestamp,
+    entry_count int,
+    icao_code varchar,
+    station_name varchar,
+    station_height int,
+    min_temperature int,
+    max_temperature int,
+    PRIMARY KEY(station_id)
 );
