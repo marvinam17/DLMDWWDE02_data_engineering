@@ -32,7 +32,18 @@ def save_to_postgres(writeDF, epoch_id):
     .format("jdbc")\
     .option("url","jdbc:postgresql://postgres:5432/postgres")\
     .option("driver", "org.postgresql.Driver")\
-    .option("dbtable","dwd_weather.daily_temp_data")\
+    .option("dbtable","dwd_weather.meta_data")\
+    .option("user","postgres")\
+    .option("password","postgres")\
+    .mode("append")\
+    .save()
+
+def save_yearly_temp_to_postgres(writeDF, epoch_id):
+  writeDF.write \
+    .format("jdbc")\
+    .option("url","jdbc:postgresql://postgres:5432/postgres")\
+    .option("driver", "org.postgresql.Driver")\
+    .option("dbtable","dwd_weather.yearly_data_temp")\
     .option("user","postgres")\
     .option("password","postgres")\
     .mode("append")\

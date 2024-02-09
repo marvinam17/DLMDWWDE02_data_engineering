@@ -76,21 +76,27 @@ if __name__ == '__main__':
     
     query_meta_data = df_meta_joined.writeStream \
         .trigger(processingTime="15 seconds") \
-        .foreachBatch(save_meta_data_to_cassandra) \
-        .outputMode("update") \
+        .foreachBatch(save_to_postgres) \
+        .outputMode("complete") \
         .start()    
 
-    # query_othe = df_othe_agg.writeStream \
-    #     .trigger(processingTime="15 seconds") \
-    #     .foreachBatch(save_othe_to_cassandra) \
-    #     .outputMode("update") \
-    #     .start()
-
+    query_othe = df_othe_agg.writeStream \
+        .trigger(processingTime="15 seconds") \
+        .foreachBatch(save_othe_to_cassandra) \
+        .outputMode("update") \
+        .start()
+    
     query_yearly_temp = df_temp_yearly_agg.writeStream \
         .trigger(processingTime="15 seconds") \
         .foreachBatch(save_yearly_temp_to_cassandra) \
         .outputMode("update") \
         .start()    
+
+    # query_yearly_temp = df_temp_yearly_agg.writeStream \
+    #     .trigger(processingTime="15 seconds") \
+    #     .foreachBatch(save_yearly_temp_to_cassandra) \
+    #     .outputMode("update") \
+    #     .start()    
 
     # query2 = df_temp_joined.writeStream \
     #     .trigger(processingTime="15 seconds") \

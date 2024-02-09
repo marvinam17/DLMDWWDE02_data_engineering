@@ -31,7 +31,6 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
     networks:
       - backend
-
   init-kafka:
     image: confluentinc/cp-kafka
     container_name: init-kafka
@@ -61,13 +60,13 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: '2'
           memory: 1G
-    ports:
-      - '8080:8080'
-      - '4040:4040'
-      - '7077:7077'
     environment:
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
       SPARK_MODE: master
       CASSANDRA_USER: cassandra
       CASSANDRA_PASSWORD: cassandra
@@ -79,32 +78,7 @@ services:
     volumes:
       - ./data_aggregation/data:/data
       - ./data_aggregation:/src
-    networks:
-      - backend
-  spark-worker:
-    build: ./data_aggregation
-    container_name: spark-worker
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 1G
-    depends_on:
-      kafka:
-        condition: service_healthy
-      cassandra:
-        condition: service_healthy
-    environment:
-      SPARK_MODE: worker
-      SPARK_MASTER_URL: spark://spark:7077
-      SPARK_WORKER_MEMORY: 1G
-      SPARK_EXECUTOR_MEMORY: 1G
-      SPARK_WORKER_CORES: 2
-      CASSANDRA_USER: cassandra
-      CASSANDRA_PASSWORD: cassandra
-    volumes:
-      - ./data_aggregation/data:/data
-      - ./data_aggregation:/src 
+    command: /bin/sh -c "spark-submit /src/main.py"
     networks:
       - backend
   # ----------------- #
@@ -146,8 +120,12 @@ services:
       always
     networks:
       - backend
+  # ----------------- #
+  # Postgres          #
+  # ----------------- #      
   postgres:
     build: ./storage
+    container_name: postgres
     restart: always
     environment:
       POSTGRES_PASSWORD: postgres
@@ -177,6 +155,14 @@ services:
       - '8088:8088'
     volumes:
       - './data_visualization/dashboard:/data'
+    networks:
+      - backend
+  superset-init:
+    build: ./data_visualization/init
+    container_name: superset-init
+    depends_on:
+      superset: 
+        condition: service_started
     networks:
       - backend
 networks:

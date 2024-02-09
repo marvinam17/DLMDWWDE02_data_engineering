@@ -10,7 +10,9 @@ superset db upgrade
 superset superset init 
 
 # Add Dashboard
-superset import-dashboards --path /data/dashboard.zip --username admin
+# Not Working because of postgres password
+#superset import-dashboards --path /data/dashboard.zip --username admin
+
 
 # Starting server
 /bin/sh -c /usr/bin/run-server.sh

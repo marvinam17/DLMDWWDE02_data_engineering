@@ -27,16 +27,3 @@ CREATE TABLE IF NOT EXISTS yearly_data_temp(
     quality int,
     PRIMARY KEY(year)
 );
-
-CREATE TABLE IF NOT EXISTS meta_data(
-    station_id int,
-    max_date timestamp,
-    min_date timestamp,
-    entry_count int,
-    icao_code varchar,
-    station_name varchar,
-    station_height int,
-    min_temperature int,
-    max_temperature int,
-    PRIMARY KEY(station_id)
-);
