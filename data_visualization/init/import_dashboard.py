@@ -1,11 +1,12 @@
 # This was taken from https://github.com/apache/superset/issues/20288
 # As the superset cli dashboard import does not work with passwords
+import os
 import requests
 
-new_zip_file = './dashboard.zip'
-username = 'admin'
-password = 'admin'
-
+# Get/Set env vars and dashboard path
+dashboard_zip_file = './dashboard.zip'
+username = os.getenv("ADMIN_USERNAME")
+password = os.getenv("ADMIN_PW")
 base_url = 'http://superset:8088'
 
 while True:
@@ -42,7 +43,7 @@ cookie = session.cookies.get_dict().get('session')
 
 import_dashboard_url = f"{base_url}/api/v1/dashboard/import/"
 
-with open(new_zip_file, 'rb') as f:
+with open(dashboard_zip_file, 'rb') as f:
     payload = {
         'passwords': '{"databases/PostgreSQL.yaml":"postgres"}',
         'overwrite': 'true'

@@ -1,3 +1,5 @@
+import os
+
 # Functions for batch writing to CASSANDRA
 def save_temp_to_cassandra(writeDF, epoch_id):
     writeDF.write \
@@ -28,13 +30,15 @@ def save_meta_data_to_cassandra(writeDF, epoch_id):
     .save()
 
 def save_to_postgres(writeDF, epoch_id):
+  user = os.getenv("POSTGRES_USER")
+  password = os.getenv("POSTGRES_PW")
   writeDF.write \
     .format("jdbc")\
     .option("url","jdbc:postgresql://postgres:5432/postgres")\
     .option("driver", "org.postgresql.Driver")\
     .option("dbtable","dwd_weather.meta_data")\
-    .option("user","postgres")\
-    .option("password","postgres")\
+    .option("user",user)\
+    .option("password",password)\
     .mode("append")\
     .save()
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # create Admin user, you can read these values from env or anywhere else possible
-superset fab create-admin --username "$ADMIN_USERNAME" --firstname Superset --lastname Admin --email "$ADMIN_EMAIL" --password "$ADMIN_PASSWORD"
+superset fab create-admin --username "$ADMIN_USERNAME" --firstname "$ADMIN_FIRSTNAME" --lastname "$ADMIN_NAME" --email "$ADMIN_EMAIL" --password "$ADMIN_PASSWORD"
 
 # Upgrading Superset metastore
 superset db upgrade
