@@ -1,12 +1,16 @@
+"""
+Main module for Spark Streaming
+"""
+
 import os
 from pyspark.sql import SparkSession
-from schemas import (SCHEMA_TEMP, 
+from schemas import (SCHEMA_TEMP,
                      SCHEMA_OTHE,
                      SCHEMA_STATIC)
 from utils import (create_stream,
                    apply_schema,
                    join_static_data)
-from aggregations import (apply_aggs, 
+from aggregations import (apply_aggs,
                           daily_aggs_temp,
                           daily_aggs_othe,
                           yearly_aggs_temp,
@@ -14,7 +18,6 @@ from aggregations import (apply_aggs,
 from save_functions import (save_temp_to_cassandra,
                             save_othe_to_cassandra,
                             save_yearly_temp_to_cassandra,
-                            save_meta_data_to_cassandra,
                             save_to_postgres)
 import pyspark.sql.functions as F
 
@@ -50,9 +53,9 @@ if __name__ == '__main__':
     df_othe = create_stream(spark, KAFKA_BOOTSTRAP_SERVERS, TOPIC_OTHE, "earliest")
 
     # Read static data
-    df_static = spark.read.csv("/data/station_data.csv", 
+    df_static = spark.read.csv("/data/station_data.csv",
                             header=False,
-                            schema=SCHEMA_STATIC, 
+                            schema=SCHEMA_STATIC,
                             sep=";")
 
     # Extract data from json (Kafka) in a Dataframe and clean up the timestamp column
@@ -61,58 +64,41 @@ if __name__ == '__main__':
     df_temp_yearly = df_temp_schema.withColumn("year",F.year("measurement_date"))
 
     # Perform Aggregations depending on the Dataframe
-    df_temp_agg = apply_aggs(df_temp_schema, daily_aggs_temp(), [COL_TEMP], ["measurement_date","station_id"])
-    df_othe_agg = apply_aggs(df_othe_schema, daily_aggs_othe(), [COL_PRES, COL_HUMI, COL_DEWP],["measurement_date","station_id"])
-    df_temp_yearly_agg = apply_aggs(df_temp_yearly, yearly_aggs_temp(), [COL_TEMP],["year"])
-    df_meta_agg = apply_aggs(df_temp_schema, aggs_meta_data(), [COL_TEMP],["station_id"])
+    df_temp_agg = apply_aggs(df_temp_schema, daily_aggs_temp(),
+                             [COL_TEMP], ["measurement_date","station_id"])
+    df_othe_agg = apply_aggs(df_othe_schema, daily_aggs_othe(),
+                             [COL_PRES, COL_HUMI, COL_DEWP],["measurement_date","station_id"])
+    df_temp_yearly_agg = apply_aggs(df_temp_yearly, yearly_aggs_temp(),
+                                    [COL_TEMP],["year"])
+    df_meta_agg = apply_aggs(df_temp_schema, aggs_meta_data(),
+                             [COL_TEMP],["station_id"])
 
     # Join static data
     df_meta_joined = join_static_data(df_meta_agg, df_static)
 
-    # Batch Writing to CASSANDRA and POSTGRES
-    query_temp = df_temp_agg.writeStream \
-        .trigger(processingTime="15 seconds") \
-        .foreachBatch(save_temp_to_cassandra) \
-        .outputMode("update") \
+    # Batch Writing to CASSANDRA and POSTGRES in 15 sec batches
+    query_temp = df_temp_agg.writeStream\
+        .trigger(processingTime="15 seconds")\
+        .foreachBatch(save_temp_to_cassandra)\
+        .outputMode("update")\
         .start()
-    
-    query_meta_data = df_meta_joined.writeStream \
-        .trigger(processingTime="15 seconds") \
-        .foreachBatch(save_to_postgres) \
-        .outputMode("complete") \
-        .start()    
 
-    query_othe = df_othe_agg.writeStream \
-        .trigger(processingTime="15 seconds") \
-        .foreachBatch(save_othe_to_cassandra) \
-        .outputMode("update") \
+    query_meta_data = df_meta_joined.writeStream\
+        .trigger(processingTime="15 seconds")\
+        .foreachBatch(save_to_postgres)\
+        .outputMode("complete")\
         .start()
-    
-    query_yearly_temp = df_temp_yearly_agg.writeStream \
-        .trigger(processingTime="15 seconds") \
-        .foreachBatch(save_yearly_temp_to_cassandra) \
-        .outputMode("update") \
-        .start()    
 
-    # query_yearly_temp = df_temp_yearly_agg.writeStream \
-    #     .trigger(processingTime="15 seconds") \
-    #     .foreachBatch(save_yearly_temp_to_cassandra) \
-    #     .outputMode("update") \
-    #     .start()    
+    query_othe = df_othe_agg.writeStream\
+        .trigger(processingTime="15 seconds")\
+        .foreachBatch(save_othe_to_cassandra)\
+        .outputMode("update")\
+        .start()
 
-    # query2 = df_temp_joined.writeStream \
-    #     .trigger(processingTime="15 seconds") \
-    #     .outputMode("complete") \
-    #     .foreachBatch(save_to_postgres) \
-    #     .start()
-
-    # orders_agg_write_stream = df_temp_joined \
-    #     .writeStream \
-    #     .trigger(processingTime='5 seconds') \
-    #     .outputMode("update") \
-    #     .option("truncate", "false")\
-    #     .option("checkpointLocation", "temp/spark-checkpoint-7") \
-    #     .format("console") \
-    #     .start()
+    query_yearly_temp = df_temp_yearly_agg.writeStream\
+        .trigger(processingTime="15 seconds")\
+        .foreachBatch(save_yearly_temp_to_cassandra)\
+        .outputMode("update")\
+        .start()
 
     spark.streams.awaitAnyTermination()

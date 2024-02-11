@@ -1,5 +1,6 @@
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType, FloatType
 
+# Schemas for Kafka Streams and Static Dataframes
 SCHEMA_TEMP = StructType([
     StructField("measurement_date", StringType()),
     StructField("station_id", StringType()),

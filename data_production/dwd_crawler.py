@@ -1,9 +1,12 @@
+"""
+This module provides data crawling for the Kafka Producer.
+"""
 import re
+from zipfile import ZipFile
+from io import BytesIO
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-from zipfile import ZipFile
-from io import BytesIO
 
 def rename_dataframe_columns(df):
     """
@@ -23,7 +26,7 @@ def rename_dataframe_columns(df):
     return df[list(rename_dict.values())]
 
 def reformat_timestamp(df):
-    df["MEASUREMENT_DATE"] = pd.to_datetime(df["MEASUREMENT_DATE"], 
+    df["MEASUREMENT_DATE"] = pd.to_datetime(df["MEASUREMENT_DATE"],
                                             format='%Y%m%d%H%M')
     return df
 
@@ -40,7 +43,8 @@ def get_and_unzip_files(url, list_of_filenames):
             df = pd.read_csv(z.open(file),sep=';')
             df.columns = [s.strip() for s in df.columns]
             dfs.append(rename_dataframe_columns(df))
-    return pd.concat(dfs).sort_values("MEASUREMENT_DATE").drop_duplicates(subset=["MEASUREMENT_DATE"])
+    return pd.concat(dfs).sort_values("MEASUREMENT_DATE").drop_duplicates(
+        subset=["MEASUREMENT_DATE"])
 
 def get_station_dwd_file_storage(url, station_id):
     """
@@ -51,7 +55,7 @@ def get_station_dwd_file_storage(url, station_id):
     for folder in ["historical/","recent/","now/"]:
         filtered = []
         r = requests.get(url+folder)
-        soup = BeautifulSoup(r.content,'html.parser') 
+        soup = BeautifulSoup(r.content,'html.parser')
         a_tags_list = []
         for link in soup.find_all('a'):
             a_tags_list.append(link.get('href'))

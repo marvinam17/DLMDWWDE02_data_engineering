@@ -100,7 +100,7 @@ services:
         condition: service_started
     environment:
       KAFKA_LISTENER: kafka:29092
-      STREAMING_SPEED: 1.0
+      STREAMING_SPEED: 20.0
       STATION_ID: "00433"
     networks:
       - backend
@@ -121,7 +121,7 @@ services:
       HEAP_NEWSIZE: 128M
       MAX_HEAP_SIZE: 2048M
     volumes:
-      - ./data_storage/mount/:/var/lib/cassandra
+      - ./data_storage/mount/:/bitnami/cassandra
     restart:
       always
     networks:
@@ -135,6 +135,8 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PW}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: postgres
     volumes:
       - ./data_storage_postgres/mount/:/var/lib/postgresql/data
     networks:
