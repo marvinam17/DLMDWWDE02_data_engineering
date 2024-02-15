@@ -11,3 +11,8 @@ CREATE SCHEMA IF NOT EXISTS dwd_weather;
         min_temperature double precision,
         max_temperature double precision
     );
+    CREATE TABLE IF NOT EXISTS dwd_weather.overall_temp(
+        measurement_date timestamp,
+        min_temperature double precision,
+        max_temperature double precision
+    );

@@ -62,6 +62,7 @@ services:
         limits:
           cpus: '2'
           memory: 1G
+    restart: always
     environment:
       SPARK_RPC_AUTHENTICATION_ENABLED: "no"
       SPARK_RPC_ENCRYPTION_ENABLED: "no"
@@ -147,10 +148,48 @@ services:
   presto:
     image: prestodb/presto:0.285
     container_name: presto
+    environment:
+      CASSANDRA_USER: ${CASSANDRA_USER}
+      CASSANDRA_PASSWORD: ${CASSANDRA_PW}
     volumes:
       - './db_connector/etc:/opt/presto-server/etc'
     networks:
       - backend
+  # ----------------- #
+  #   PrestoCluster   #
+  # ----------------- #
+  # presto-coordinator:
+  #   image: prestodb/presto:0.285
+  #   container_name: presto-coordinator
+  #   environment:
+  #     CASSANDRA_USER: ${CASSANDRA_USER}
+  #     CASSANDRA_PASSWORD: ${CASSANDRA_PW}
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - './db_connector/etc_coordinator:/opt/presto-server/etc'
+  #   networks:
+  #     - backend
+  # presto-worker-1:
+  #   image: prestodb/presto:0.285
+  #   container_name: presto-worker-1
+  #   environment:
+  #     CASSANDRA_USER: ${CASSANDRA_USER}
+  #     CASSANDRA_PASSWORD: ${CASSANDRA_PW}
+  #   volumes:
+  #     - './db_connector/etc_worker:/opt/presto-server/etc'
+  #   networks:
+  #     - backend
+  # presto-worker-2:
+  #   image: prestodb/presto:0.285
+  #   container_name: presto-worker-2
+  #   environment:
+  #     CASSANDRA_USER: ${CASSANDRA_USER}
+  #     CASSANDRA_PASSWORD: ${CASSANDRA_PW}
+  #   volumes:
+  #     - './db_connector/etc_worker:/opt/presto-server/etc'
+  #   networks:
+  #     - backend
   # ----------------- #
   #     Superset      #
   # ----------------- #
@@ -165,8 +204,6 @@ services:
       ADMIN_NAME: ${SUPERSET_ADMIN_NAME}
     ports:
       - '8088:8088'
-    volumes:
-      - './data_visualization/dashboard:/data'
     networks:
       - backend
   superset-init:
