@@ -17,8 +17,7 @@ The most actual data is crawled from DWD and written to two Kafka topics using k
 A Kafka Cluster is used to consume DWD data from the Kafka Producer. An init Container is used to create kafka topics on startup. Kafka is coming with Zookeeper for meta data management.
 
 ### Data Aggregation
-Spark Streaming reads two streams from both Kafka topics and a static dataset. A schema is applied and the data is converted from json to DataFrame format. Afterwards various aggregations are performed to create five resulting 
-DataFrames. The static data is joined to one of them. Finally the data is written to Cassandra and PostgreSQL in 15 second batches. For Cassandra the update mode is used. As this is not available for JBDC driver and therefore PostgreSQL, the append mode was chosen in this case.
+Spark Streaming reads two streams from both Kafka topics and a static dataset. A schema is applied and the data is converted from json to DataFrame format. Rows that contain invalid data (-999.0) are removed at this stage. Afterwards various aggregations are performed to create five resulting DataFrames. The static data is joined to one of them. Finally the data is written to Cassandra and PostgreSQL in 15 second batches. For Cassandra the update mode is used. As this is not available for JBDC driver and therefore PostgreSQL, the append mode was chosen in this case.
 
 ### Data Storage
 A Cassandra instance is deployed using bitnami container. This container enables on startup execution of a cql script that creates the relevant keyspace and tables.\
