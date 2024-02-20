@@ -11,14 +11,14 @@ In order to realize maintainability and reproducibility, the application is base
 To ensure data governance and data protection, (notionally) sensitive data, such as metadata from the measuring station, is only added during the aggregation process. Furthermore, access to the visualizations can be restricted by the integrated user management of Apache Superset.
 
 ### Data Production
-The most actual data is crawled from DWD and written to two Kafka topics using kafka-python. Data is splitted by temperature and all other data. This is all done using a python image.
+The most actual data is crawled from DWD and written to two Kafka topics using kafka-python. Data is splitted by temperature and all other data. This is done using a python image.
 
 ### Data Ingest
-A Kafka Cluster is used to consume DWD data from the Kafka Producer. An init Container is used to create kafka topics on startup.
+A Kafka Cluster is used to consume DWD data from the Kafka Producer. An init Container is used to create kafka topics on startup. Kafka is coming with Zookeeper for meta data management.
 
 ### Data Aggregation
 Spark Streaming reads two streams from both Kafka topics and a static dataset. A schema is applied and the data is converted from json to DataFrame format. Afterwards various aggregations are performed to create five resulting 
-DataFrames. The static data is joined to one of them. Finally the data is written to Cassandra and PostgreSQL in 15 second batches. For Cassandra the update mode is used. As this is not available for JBDC driver and therefore PostgreSQL, the append mode was chosen.
+DataFrames. The static data is joined to one of them. Finally the data is written to Cassandra and PostgreSQL in 15 second batches. For Cassandra the update mode is used. As this is not available for JBDC driver and therefore PostgreSQL, the append mode was chosen in this case.
 
 ### Data Storage
 A Cassandra instance is deployed using bitnami container. This container enables on startup execution of a cql script that creates the relevant keyspace and tables.\
@@ -29,7 +29,7 @@ The data storage path of the containers is mounted to the host machine to ensure
 A Presto instance is deployed to enable SQL connection to Cassandra. The relevant configuration files are mounted into the container. In this setup no authentification is required for Presto.
 
 ### Data Visualization
-Apache Superset is deployed in a single container solution. The handbook recommends a different deployment strategy using another Postgres instance and redis for chaching. To keep the computational effort in acceptable limits a single container strategy was chosen. A Dashboard was created as zip file and is loaded to the Superset instance using another init container and the API. 
+Apache Superset is deployed in a single container solution. The handbook recommends a different deployment strategy using another Postgres instance and Redis for chaching. To keep the computational effort in acceptable limits a single container strategy was chosen. A dashboard was created as zip file and is loaded to the Superset instance using another init container and the Superset API. 
 
 
 ## Dashboard Preview
@@ -42,7 +42,7 @@ Invalid values are marked by: -999.0
 ## Requirements:
 Docker-Compose installed
 - min 8 GB RAM available
-- ~ 6 Cores available
+- ~ 8 Cores available
 - min 20 GB disk space available
 
 ## Start Command
