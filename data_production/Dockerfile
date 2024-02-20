@@ -6,7 +6,10 @@ RUN python -m pip install --upgrade pip;\
     pip install requests;\
     pip install beautifulsoup4;
 
-ADD dwd_crawler.py /
-ADD producer.py /
+WORKDIR /code
+
+ADD dwd_crawler.py /code
+ADD producer.py /code
+ADD ./sample_data /code/sample_data
 
 CMD ["python", "./producer.py"]

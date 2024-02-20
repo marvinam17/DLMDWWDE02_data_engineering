@@ -10,6 +10,28 @@ Apache Superset is used to visualize the aggregated data. Since Superset does no
 In order to realize maintainability and reproducibility, the application is based on a microservice architecture, which is implemented using Docker-Compose in a separate Docker network. As all the components used are distributed systems, horizontal scaling is possible and this ensures high availability of the overall system. In combination with tested code, the reliability of the application is achieved.\
 To ensure data governance and data protection, (notionally) sensitive data, such as metadata from the measuring station, is only added during the aggregation process. Furthermore, access to the visualizations can be restricted by the integrated user management of Apache Superset.
 
+### Data Production
+The most actual data is crawled from DWD and written to two Kafka topics using kafka-python. Data is splitted by temperature and all other data. This is all done using a python image.
+
+### Data Ingest
+A Kafka Cluster is used to consume DWD data from the Kafka Producer. An init Container is used to create kafka topics on startup.
+
+### Data Aggregation
+Spark Streaming reads two streams from both Kafka topics and a static dataset. A schema is applied and the data is converted from json to DataFrame format. Afterwards various aggregations are performed to create five resulting 
+DataFrames. The static data is joined to one of them. Finally the data is written to Cassandra and PostgreSQL in 15 second batches. For Cassandra the update mode is used. As this is not available for JBDC driver and therefore PostgreSQL, the append mode was chosen.
+
+### Data Storage
+A Cassandra instance is deployed using bitnami container. This container enables on startup execution of a cql script that creates the relevant keyspace and tables.\
+Furthermore, a PostgreSQL instance is deployed using the original postgres image. The db is created using an environment variable. A SQL script is executed on startup to create the relevant tables.\
+The data storage path of the containers is mounted to the host machine to ensure that the data is still available on next startup.
+
+### Data Connector
+A Presto instance is deployed to enable SQL connection to Cassandra. The relevant configuration files are mounted into the container. In this setup no authentification is required for Presto.
+
+### Data Visualization
+Apache Superset is deployed in a single container solution. The handbook recommends a different deployment strategy using another Postgres instance and redis for chaching. To keep the computational effort in acceptable limits a single container strategy was chosen. A Dashboard was created as zip file and is loaded to the Superset instance using another init container and the API. 
+
+
 ## Dashboard Preview
 ![alt text](https://github.com/marvinam17/DLMDWWDE02_data_engineering/blob/main/architecture/dashboard_example.png?raw=true)
 
@@ -45,11 +67,11 @@ In order to execute the tests a new Spark container is created and the tests are
  * The Presto Cassandra Connector is slow because all aggregations are done by Presto and not by Cassandra. This should be considered in future projects. Therefore, I added a Postgres Database to store highly aggregated data and enable an acceptable refresh time of the dashboard.
  * The order of service startup is very important. If Cassandra or Kafka are not available on Spark start-up it will crash. Therefore, I added healthchecks to ensure the correct startup order. 
  * Docker Networks are relatively easy to handle and offer a great service separation.
- * Spark requires drivers for the communication with Postgres, Cassandra and Kafka. Finding the correct version and the handling of that drivers is not intuitive from my perspective. I had to read much documentation and examples. In the implementation process I switched from a download on startup strategy to a local provision of the drivers.
+ * Spark requires drivers for the communication with Postgres, Cassandra and Kafka. Finding the correct version and the handling of that drivers is not intuitive from my perspective. I had to read much documentation and examples. In the implementation process I switched from a download on startup strategy to a local provisioning of the drivers.
  * SparkStreaming does not support Upsert Data Writing with all database drivers. Cassandra is supported but Postgres not. This was one reason why I persisted the daily aggregated data in Cassandra and highly aggregated data in Postgres. Even though one could overwrite the whole Postgres Table on each batch, this is a huge overhead and results in windows where no data is available in the visualization tool.
  * Superset does not support a dashboard import with database passwords via CLI. Therefore I had to use the Superset API. Which is pretty amazing to be honest. It provides full control over Superset.
 
 
 ## Open Questions
- * Why is Presto not accepting environment variables in the cassandra.properties file? According to the Presto Github Repo Discussions and also the Trino (was forked from Presto) docs it should work with `${ENV:VARIABLE_NAME}`. I tried many different references to the environment vars (`${ENV:VARIABLE_NAME}`, `${VARIABLE_NAME}`, ...) but it did not work in any of them. Therefore a manual adjustment of the cassandra-properties file is still necessary.
+ * Why is Presto not accepting environment variables in the cassandra.properties file? According to the Presto Github Repo Discussions and also the Trino (was forked from Presto) docs it should work with `${ENV:VARIABLE_NAME}`. I tried many different references to the environment vars (`${ENV:VARIABLE_NAME}`, `${VARIABLE_NAME}`, ...) but it did not work with any of them. Therefore, a manual adjustment of the cassandra-properties file is still necessary.
 

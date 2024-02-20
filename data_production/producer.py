@@ -6,7 +6,7 @@ import os
 import json
 from time import sleep
 from kafka import KafkaProducer
-from pandas import DataFrame
+import pandas as pd
 from dwd_crawler import get_and_unzip_files, get_station_dwd_file_storage
 
 URL = "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/10_minutes/air_temperature/"
@@ -19,7 +19,7 @@ TOPIC_OTHE = "others"
 
 def calc_speed_factor(speed: float):
     """
-    This is a minor reformat of the streamspeed to give the user a ground speed
+    This is a minor reformat of the streamspeed to give the user a theoretical ground speed
     of one day per second if the speed is the to 1.0
     """
     streamspeed = 1 / (144 * speed)
@@ -35,7 +35,7 @@ producer = KafkaProducer(
 )
 
 
-def push_records(data: DataFrame, speed: float):
+def push_records(data: pd.DataFrame, speed: float):
     for _, row in data.iterrows():
         base_payload = {
             "measurement_date": int(row["MEASUREMENT_DATE"]),
@@ -67,6 +67,12 @@ def push_records(data: DataFrame, speed: float):
 
 
 if __name__ == "__main__":
-    station_names = get_station_dwd_file_storage(URL, STATION_ID)
-    data = get_and_unzip_files(URL, station_names)
+    try:
+        # Always try to get the most actual data.
+        station_names = get_station_dwd_file_storage(URL, STATION_ID)
+        data = get_and_unzip_files(URL, station_names)
+    except:
+        # Take local data if actual data is not available due to missing 
+        # Internet connection or changes in DWD Storage.
+        data = pd.read_csv("sample_data/dwd_00433.csv", sep=";")
     push_records(data, calc_speed_factor(STREAM_SPEED))

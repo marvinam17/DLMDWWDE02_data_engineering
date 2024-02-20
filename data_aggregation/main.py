@@ -80,16 +80,25 @@ if __name__ == "__main__":
         ["measurement_date", "station_id"],
     )
     df_temp_yearly_agg = apply_aggs(
-        df_temp_yearly, yearly_aggs_temp(), [COL_TEMP], ["year"]
+        df_temp_yearly,
+        yearly_aggs_temp(),
+        [COL_TEMP],
+        ["year"]
     )
     df_meta_agg = apply_aggs(
-        df_temp_schema, aggs_meta_data(), [COL_TEMP], ["station_id"]
+        df_temp_schema,
+        aggs_meta_data(),
+        [COL_TEMP],
+        ["station_id"]
     )
     df_overall_agg = apply_aggs(
-        df_temp_schema, overall_aggs_temp(), [COL_TEMP], ["measurement_date"]
+        df_temp_schema,
+        overall_aggs_temp(),
+        [COL_TEMP],
+        ["measurement_date"]
     )
-    df_overall_agg_filtered = df_overall_agg.where((F.col("max_temp") > 20.0)|
-                                                   (F.col("min_temp") < 0.0))
+    df_overall_agg_filtered = df_overall_agg.where((F.col("max_temperature") > 20.0)|
+                                                   (F.col("min_temperature") < 0.0))
 
     # Join static data
     df_meta_joined = join_static_data(df_meta_agg, df_static)

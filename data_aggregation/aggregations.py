@@ -60,8 +60,8 @@ def overall_aggs_temp() -> list:
     Return Daily Temperature Aggregations
     """
     aggs = [
-        F.max("temperature").alias("max_temp"),
-        F.min("temperature").alias("min_temp"),
+        F.max("temperature").alias("max_temperature"),
+        F.min("temperature").alias("min_temperature"),
     ]
     return aggs
 
