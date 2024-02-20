@@ -54,9 +54,9 @@ The total time until completion takes around 20 minutes.
 ## Usage in production environments
 In the main directory there is a .env file that defines all user access values. These should be changed in a productive environment, as they are defined with default variables. In superset_config.py you should change the SECRET_KEY.
 If you change the cassandra credentials in .env you have to adjust the credetials in db_connector/etc/catalog/cassandra.properties as well.
-Furthermore, a user without admin rights should be created in Superset to ensure non root access to the Dashboard and its data. As all containers are in a separate "backend" network and no ports except supersets main port are exposed there is only on access point to the pipeline. 
+Furthermore, a user without admin rights should be created in Superset to ensure non root access to the Dashboard and its data. As all containers are in a separate "backend" network and no ports except supersets main port are exposed there is only one access point to the pipeline. 
 
-## Execute the Tests
+## Execute the tests
 In order to execute the tests a new Spark container is created and the tests are executed using the following command:
 
 `docker build -t spark-testing ./data_aggregation; docker run -it --rm --mount=type=bind,source=${PWD}/data_aggregation,target=/src spark-testing /bin/bash -c 'python -m pytest --doctest-modules /src'`
@@ -68,10 +68,10 @@ In order to execute the tests a new Spark container is created and the tests are
  * The order of service startup is very important. If Cassandra or Kafka are not available on Spark start-up it will crash. Therefore, I added healthchecks to ensure the correct startup order. 
  * Docker Networks are relatively easy to handle and offer a great service separation.
  * Spark requires drivers for the communication with Postgres, Cassandra and Kafka. Finding the correct version and the handling of that drivers is not intuitive from my perspective. I had to read much documentation and examples. In the implementation process I switched from a download on startup strategy to a local provisioning of the drivers.
- * SparkStreaming does not support Upsert Data Writing with all database drivers. Cassandra is supported but Postgres not. This was one reason why I persisted the daily aggregated data in Cassandra and highly aggregated data in Postgres. Even though one could overwrite the whole Postgres Table on each batch, this is a huge overhead and results in windows where no data is available in the visualization tool.
+ * Spark Streaming does not support Upsert Data Writing with all database drivers. Cassandra is supported but Postgres not. This was one reason why I persisted the daily aggregated data in Cassandra and highly aggregated data in Postgres. Even though one could overwrite the whole Postgres Table on each batch, this is a huge overhead and results in windows where no data is available in the visualization tool.
  * Superset does not support a dashboard import with database passwords via CLI. Therefore I had to use the Superset API. Which is pretty amazing to be honest. It provides full control over Superset.
 
 
 ## Open Questions
- * Why is Presto not accepting environment variables in the cassandra.properties file? According to the Presto Github Repo Discussions and also the Trino (was forked from Presto) docs it should work with `${ENV:VARIABLE_NAME}`. I tried many different references to the environment vars (`${ENV:VARIABLE_NAME}`, `${VARIABLE_NAME}`, ...) but it did not work with any of them. Therefore, a manual adjustment of the cassandra-properties file is still necessary.
+ * Why is Presto not accepting environment variables in the cassandra.properties file? According to the Presto Github Repo Discussions and also the Trino (was forked from Presto) docs it should work with `${ENV:VARIABLE_NAME}`. I tried many different references to the environment vars (`${ENV:VARIABLE_NAME}`, `${VARIABLE_NAME}`, ...) but it did not work with any of them. Therefore, a manual adjustment of the cassandra.properties file is still necessary.
 
