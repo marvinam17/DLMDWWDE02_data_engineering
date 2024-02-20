@@ -47,7 +47,7 @@ Docker-Compose installed
 
 ## Start Command
 `docker-compose up -d`
-After pulling all images the startup takes around 90 seconds. Afterwards, the dashboard is accessible at http://localhost:8088. You can login with the Superset credentials that were set in .env file.
+After pulling all images the startup takes around 90 seconds. Afterwards, the dashboard is accessible at http://localhost:8088. You can login with the Superset credentials that were set in .env file (default is User: admin and Password: admin).
 After that you can select the Weather Dashboard, go to settings and set the refresh intervall to 30 seconds. And then have a look at the Weather history of your choice.
 The total time until completion takes around 20 minutes. 
 
